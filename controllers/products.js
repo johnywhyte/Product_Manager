@@ -1,5 +1,6 @@
 const ErrorResponse = require('../utils/errorResponse')
 const asyncHandler = require('../middleware/async')
+const geocoder = require('../utils/geocoder')
 const Product = require('../models/Product');
 
 
@@ -11,7 +12,7 @@ const Product = require('../models/Product');
 
 exports.getProducts = asyncHandler( async (req, res, next) => {
 
-    const products = await Product.find();
+    const products = await Product.find().populate('comments');
 
     res.status(200)
         .json({
@@ -27,7 +28,7 @@ exports.getProducts = asyncHandler( async (req, res, next) => {
 
 exports.getProduct = asyncHandler( async (req, res, next) => {
 
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).populate('comments');
 
     if(!product)
     {
@@ -43,21 +44,21 @@ exports.getProduct = asyncHandler( async (req, res, next) => {
 
 // @desc Add a Products
 // @route POST /api/v1/products
-// @access Private
+// @access public
 
 exports.addProduct = asyncHandler( async (req, res, next) => {
    console.log(req.body);
-   const product = await Product.create(req.body);
+   const product = await (await Product.create(req.body));
 
         res.status(201)
         .json( {success: true, msg: product} );
-    })
+})
 
 
 
 // @desc Update Products
-// @route PUT /api/v1/stores/:storeid/products
-// @access Private
+// @route PUT /api/v1/products/:productid
+// @access public
 
 exports.updateProduct = asyncHandler( async (req, res, next) => {
 
@@ -80,13 +81,57 @@ exports.updateProduct = asyncHandler( async (req, res, next) => {
 
 // @desc Delete a Product
 // @route DELETE /api/v1/products/:id
-// @access Private
+// @access public
 
 exports.deleteProduct = asyncHandler( async (req, res, next) => {
 
-    
-    res.status(200)
-    .json(
-        "ADDPRODUCT"
-    );
-    })
+    const product = await Product.findById(req.params.id);
+
+    if(!product)
+    {
+        return next(
+            new ErrorResponse(`No product with the id of ${req.params.id}`), 404)
+    }
+
+    product.remove();
+
+res.status(200)
+.json({ success: true, data: {} });
+  
+  
+    });
+
+
+
+// @desc product within a radius
+// @route GET /api/v1/products/radius/:zipcode/:distance
+// @access Public
+exports.getProdcutsInRadius = asyncHandler (async (req, res, next) => {
+  
+    const {zipcode, distance} = req.params;
+ 
+    //get the latitude and logitude
+    const loc = await geocoder.geocode(zipcode);
+    const lat = loc[0].latitude;
+    const lng = loc[0].longitude;
+ 
+ 
+    //calc radius using radians
+    //divide distance by radius of the earth 3,963mi / 6,378km
+ 
+     const radius = distance / 3963;
+ 
+     const products = await Product.find({
+         location: { $geoWithin: { $centerSphere: [[lng, lat], radius] } }
+     })
+ 
+ 
+   res.status(200).json({
+     success: true,
+     count: products.length,
+     data: products
+   });
+ 
+ });
+ 
+ 

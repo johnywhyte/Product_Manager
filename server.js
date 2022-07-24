@@ -27,9 +27,11 @@ if(process.env.NODE_ENV === 'development'){
 
 //bring in the router file
 const products = require('./routes/products');
+const comments = require('./routes/comments');
 
 //Mount Router
 app.use('/api/v1/products', products);
+app.use('/api/v1/comments', comments);
 
 const PORT = process.env.PORT || 5000;
 

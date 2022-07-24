@@ -1,10 +1,21 @@
 const express = require('express');
 
-const { getProducts, getProduct, addProduct, updateProduct, deleteProduct
+const { getProducts, getProduct, addProduct, updateProduct, deleteProduct, getProdcutsInRadius
   } = require('../controllers/products');
 
-  const router = express.Router({mergeParams: true});
+  //include other resource router
+const commentRouter = require('./comments');
+
+const router = express.Router();
+
+//re-route into other resource router
+router.use('/:productId/comments', commentRouter);
+
+ 
+
   
+  router.route('/radius/:zipcode/:distance').get(getProdcutsInRadius)
+
   router.route('/')
   .get(getProducts)
   .post(addProduct);
