@@ -14,9 +14,10 @@ const ProductSchema = new mongoose.Schema({
         trim: true,
         required: [10, 'Please add a description']
     },
-    img: { 
+    image: { 
         type: String, 
-        required: true 
+        required: true,
+        default: 'no-image.jpg'
     },
     categories: {
         // Array of strings
@@ -55,21 +56,25 @@ const ProductSchema = new mongoose.Schema({
           zipcode: String,
           country: String
         },
+      
+    status: {
+      type: [String],
+      required: true,
+      enum: [
+        'Available',
+        'Sold Out',
+        'Awaiting Delivery',
+      ]
+    },
     createdAt: {
         type: Date,
         default: Date.now
     },
-    status: {
-        type: [String],
-        required: true,
-        enum: [
-          'Available',
-          'Sold Out',
-          'Awaiting Delivery',
-        ]
-    },
-
-  
+    user: {
+      type: mongoose.Schema.ObjectId,
+      ref: 'User',
+      required: true,
+   }
 
 },
 {

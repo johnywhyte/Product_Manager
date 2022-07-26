@@ -1,3 +1,4 @@
+const path = require('path');
 const ErrorResponse = require('../utils/errorResponse')
 const asyncHandler = require('../middleware/async')
 const geocoder = require('../utils/geocoder')
@@ -47,8 +48,12 @@ exports.getProduct = asyncHandler( async (req, res, next) => {
 // @access public
 
 exports.addProduct = asyncHandler( async (req, res, next) => {
-   console.log(req.body);
-   const product = await (await Product.create(req.body));
+
+
+    //Add user to req.body
+    req.body.user = req.user.id;
+
+   const product = await Product.create(req.body);
 
         res.status(201)
         .json( {success: true, msg: product} );
@@ -63,7 +68,7 @@ exports.addProduct = asyncHandler( async (req, res, next) => {
 exports.updateProduct = asyncHandler( async (req, res, next) => {
 
         const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
+        new: true,
         runValidators: true
         });
 
@@ -134,4 +139,56 @@ exports.getProdcutsInRadius = asyncHandler (async (req, res, next) => {
  
  });
  
+
+
+
+// @desc upload photo to product
+// @route PUT /api/v1/products/:id/image
+// @access Public
+exports.productImageUpload = asyncHandler (async (req, res, next) => {
+  
+    const product = await Product.findById(req.params.id);
+
+    if(!product) {
+      return  next(new ErrorResponse(`Product not found with the id of ${req.params.id}`, 404));
+  }
+
+  if(!req.files){
+    return  next(new ErrorResponse(`Please Upload a File`, 400));
+  }
+
+  const file = req.files.file;
+
+  if(!file.mimetype.startsWith('image')){
+    return  next(new ErrorResponse(`Please Upload an Image`, 400));
+  }
+
+  //check file size
+  if(file.size > process.env.MAX_FILE_UPLOAD){
+    return  next(new ErrorResponse(`Please Upload an Image with a size less than ${process.env.MAX_FILE_UPLOAD}`, 400));
+  }
+
+  //Create custom name property
+  file.name = `image${product._id}${path.parse(file.name).ext}`;
+
+  file.mv(`${process.env.FILE_UPLOAD_PATH}/${file.name}`, async err => {
+      if(err){
+          console.log(err);
+          return  next(new ErrorResponse(`Problem with file upload`, 400));
+      }
+
+      await Product.findByIdAndUpdate(req.params.id, {image: file.name})
+
+      res.status(200).json({
+          success: true,
+          data: file.name,
+      });
+      
+  });
+
+  console.log(file.name);
+
+
+
+});
  
